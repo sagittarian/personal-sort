@@ -44,14 +44,14 @@ class memoize:
         return self.cache[key]
 
 
-@cmp_to_key
 @memoize
-def keyfunc(a, b):
+def cmpfunc(a, b):
     result = None
     s = 'Which is greater, {a} or {b} (<, =, or >)? '.format(a=a, b=b)
     while result is None or result not in '<=>':
         result = input(s).strip()
     return '<=>'.index(result) - 1
+keyfunc = cmp_to_key(cmpfunc)
 
 
 def binary_insertion_sort(seq, keyfunc):
@@ -84,6 +84,62 @@ def binary_insertion_sort(seq, keyfunc):
             mv(i, upper)
             i += 1
 
+class SortableWithHeuristic:
+
+    def __init__(self, val, heur):
+        self.val = val
+        self.heur = heur
+
+    def __str__(self):
+	    return '{val}: {heur}'.format(val=self.val, heur=self.heur)
+
+def get_heuristic_func(val):
+    result = None
+    s = 'Give an approximate numeric score to item {}: '.format(val)
+    while result is None:
+        try:
+            result = float(input(s).strip())
+        except ValueError:
+            pass
+    return result
+
+def heuristic_sort(seq, get_heuristic_func, cmpfunc):
+    def swap(a, b):
+        seq[a], seq[b] = seq[b], seq[a]
+
+    idx = 0
+    while idx < len(seq):
+        val = seq[idx]
+        heur = get_heuristic_func(val)
+        seq[idx] = SortableWithHeuristic(val, heur)
+
+        # find the current location
+        j = idx
+        while j > 0 and seq[j].heur < seq[j-1].heur:
+            swap(j, j-1)
+            j -= 1
+
+        moved = False
+        while j < idx and cmpfunc(seq[j].val, seq[j+1].val) == 1:
+            swap(j, j+1)
+            j += 1
+            moved = True
+
+        if not moved:
+            while j > 0 and cmpfunc(seq[j].val, seq[j-1].val) == -1:
+                swap(j, j-1)
+                j -= 1
+
+        if 0 < j < idx:
+            seq[j].heur = (seq[j-1].heur + seq[j+1].heur) / 2
+        elif idx > 0:
+	        if j == 0 and seq[j].heur > seq[j+1].heur:
+		        seq[j].heur = seq[j+1].heur - 1
+	        elif j == idx and seq[j].heur < seq[j-1].heur:
+		        seq[j].heur = seq[j-1].heur + 1
+
+        idx += 1
+
 
 def main():
     import sys
@@ -92,7 +148,7 @@ def main():
         seq.extend(sys.argv[1:])
     if not seq:
         seq.extend(x.strip() for x in sys.stdin.readlines())
-    binary_insertion_sort(seq, keyfunc)
+    heuristic_sort(seq, get_heuristic_func, cmpfunc)
     print('\n'.join('* {}'.format(item) for item in reversed(seq)))
 
 if __name__ == '__main__':
