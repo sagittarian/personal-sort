@@ -91,7 +91,12 @@ class SortableWithHeuristic:
         self.heur = heur
 
     def __str__(self):
-	    return '{val}: {heur}'.format(val=self.val, heur=self.heur)
+        return '{val}: {heur}'.format(val=self.val, heur=self.heur)
+
+    def __repr__(self):
+        return '{}(val={}, heur={})'.format(self.__class__.__name__,
+                                            repr(self.val),
+                                            repr(self.heur))
 
 def get_heuristic_func(val):
     result = None
